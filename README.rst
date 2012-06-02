@@ -7,6 +7,11 @@ tornado-pyuv is a Tornado IOLoop implementation which uses pyuv
 as the networking library instead of the builtin epoll and kqueue
 pollers included in Tornado.
 
+pyuv is a Python interface for libuv, a high performance asynchronous
+networking library used as the platform layer for NodeJS.
+
+Source code is on `GitHub <http://github.com/saghul/pyuv>`_.
+
 
 Motivation
 ==========
