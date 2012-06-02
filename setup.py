@@ -11,6 +11,7 @@ setup(
     description      = 'Tornado IOLoop implementation with pyuv',
     long_description = open('README.rst', 'r').read(),
     packages         = ['tornado_pyuv'],
+    install_requires = ['pyuv', 'tornado'],
     platforms        = ['POSIX'],
     classifiers      = [
           "Development Status :: 3 - Alpha",
