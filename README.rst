@@ -1,4 +1,3 @@
-
 ==============================
 A Tornado IOLoop based on pyuv
 ==============================
@@ -31,6 +30,7 @@ our IOLoop. In order to do that add the following lines at the beginning
 of your project, before importing anything from Tornado:
 
 ::
+
     import tornado_pyuv
     tornado_pyuv.install()
 
