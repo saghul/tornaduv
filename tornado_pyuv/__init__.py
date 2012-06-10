@@ -15,17 +15,11 @@ def install():
     _tornado_ioloop =  __import__('tornado.ioloop', fromlist=['foobar'])
     _IOLoop = _tornado_ioloop.IOLoop
 
-    class FDWrapper(object):
-        def __init__(self, fd):
-            self.fd = fd
-        def fileno(self):
-            return self.fd
-
     class Waker(object):
         def __init__(self, loop):
             self._lock = thread.allocate_lock()
             self._async = pyuv.Async(loop, self._cb)
-            #self._async.unref()
+            self._async.unref()
         def _cb(self, handle):
             pass
         def wake(self):
@@ -99,7 +93,7 @@ def install():
 
         def add_handler(self, fd, handler, events):
             self._handlers[fd] = stack_context.wrap(handler)
-            poll = pyuv.Poll(self._loop, FDWrapper(fd))
+            poll = pyuv.Poll(self._loop, fd)
             poll_events = 0
             if (events & IOLoop.READ):
                 poll_events |= pyuv.UV_READABLE
