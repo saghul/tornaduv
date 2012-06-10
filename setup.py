@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name             = 'tornado-pyuv',
-    version          = '0.2.0',
+    version          = '0.2.1',
     url              = 'https://github.com/saghul/tornado-pyuv',
     author           = 'Saúl Ibarra Corretgé',
     author_email     = 'saghul@gmail.com',
