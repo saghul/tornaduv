@@ -47,6 +47,8 @@ def install():
 
             self._cb_handle = pyuv.Prepare(self._loop)
             self._waker = Waker(self._loop)
+            self._signal_watcher = pyuv.Signal(self._loop)
+            self._signal_watcher.start()
 
         @staticmethod
         def instance():
