@@ -164,11 +164,11 @@ def install():
 
         def add_callback(self, callback):
             with self._callback_lock:
-                empty = not self._callbacks
+                was_active = self._cb_handle.active
                 self._callbacks.append(stack_context.wrap(callback))
-                if not self._cb_handle.active:
+                if not was_active:
                     self._cb_handle.start(self._prepare_cb)
-            if empty and thread.get_ident() != self._thread_ident:
+            if not was_active or thread.get_ident() != self._thread_ident:
                 self._waker.wake()
 
         def handle_callback_exception(self, callback):
