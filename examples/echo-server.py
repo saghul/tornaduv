@@ -2,11 +2,17 @@
 import tornado_pyuv
 tornado_pyuv.install()
 
-from tornado import ioloop
-from tornado import netutil
+import signal
+
+from tornado.ioloop import IOLoop
+from tornado.netutil import TCPServer
 
 
-class EchoServer(netutil.TCPServer):
+def handle_signal(sig, frame):
+    IOLoop.instance().add_callback(IOLoop.instance().stop)
+
+
+class EchoServer(TCPServer):
 
     def handle_stream(self, stream, address):
         self._stream = stream
@@ -21,7 +27,9 @@ class EchoServer(netutil.TCPServer):
 
 
 if __name__ == '__main__':
+    signal.signal(signal.SIGINT, handle_signal)
+    signal.signal(signal.SIGTERM, handle_signal)
     server = EchoServer()
     server.listen(8889)
-    ioloop.IOLoop.instance().start()
+    IOLoop.instance().start()
 
