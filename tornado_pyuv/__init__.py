@@ -69,8 +69,10 @@ class IOLoop(object):
 
     def _close_loop_handles(self):
         def cb(handle):
-            if not handle.closed:
+            try:
                 handle.close()
+            except Exception:
+                pass
         self._loop.walk(cb)
 
     def close(self, all_fds=False):
