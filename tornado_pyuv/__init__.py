@@ -44,8 +44,6 @@ def install():
 
             self._cb_handle = pyuv.Prepare(self._loop)
             self._waker = Waker(self._loop)
-            self._signal_watcher = pyuv.Signal(self._loop)
-            self._signal_watcher.start()
 
         @staticmethod
         def instance():
@@ -71,39 +69,35 @@ def install():
             assert not IOLoop.initialized()
             IOLoop._instance = self
 
-        def _get_loop_handles(self):
-            handles = set()
+        def _close_loop_handles(self):
             def cb(handle):
                 if not handle.closed:
-                    handles.add(handle)
+                    handle.close()
             self._loop.walk(cb)
-            return handles
 
         def close(self, all_fds=False):
             if all_fds:
-                for fd in self._handlers.keys()[:]:
-                    self._poll_handles.pop(fd, None)
-                self._handlers = {}    # TODO: is it OK to to this?
-                for handle in self._get_loop_handles():
-                    handle.close()
+                self._handlers = {}
+                self._close_loop_handles()
                 # Run the loop so the close callbacks are fired and memory is freed
                 # It will not block because all handles are closed
                 self._loop.run()
 
         def add_handler(self, fd, handler, events):
-            self._handlers[fd] = stack_context.wrap(handler)
+            if fd in self._handlers:
+                raise IOError("fd %d already registered" % fd)
             poll = pyuv.Poll(self._loop, fd)
+            poll.fd = fd
+            self._handlers[fd] = (poll, stack_context.wrap(handler))
             poll_events = 0
             if (events & IOLoop.READ):
                 poll_events |= pyuv.UV_READABLE
             if (events & IOLoop.WRITE):
                 poll_events |= pyuv.UV_WRITABLE
-            poll.fd = fd
-            self._poll_handles[fd] = poll
             poll.start(poll_events, self._handle_poll_events)
 
         def update_handler(self, fd, events):
-            poll = self._poll_handles[fd]
+            poll, _ = self._handlers[fd]
             poll_events = 0
             if (events & IOLoop.READ):
                 poll_events |= pyuv.UV_READABLE
@@ -112,9 +106,7 @@ def install():
             poll.start(poll_events, self._handle_poll_events)
 
         def remove_handler(self, fd):
-            self._handlers.pop(fd)
-            poll = self._poll_handles.pop(fd)
-            poll.close()
+            self._handlers.pop(fd, None)
 
         def set_blocking_signal_threshold(self, seconds, action):
             raise NotImplementedError
@@ -132,14 +124,12 @@ def install():
             self._thread_ident = thread.get_ident()
             self._running = True
             while self._running:
-                self._loop.run()
+                # We should use run() here, but we need to have break() for that
+                self._loop.run_once()
             # reset the stopped flag so another start/stop pair can be issued
             self._stopped = False
 
         def stop(self):
-            for handle in self._get_loop_handles():
-                if hasattr(handle, 'stop') and callable(handle.stop):
-                    handle.stop()
             self._running = False
             self._stopped = True
             self._waker.wake()
@@ -197,7 +187,7 @@ def install():
                 events |= IOLoop.WRITE
             fd = handle.fd
             try:
-                self._handlers[fd](fd, events)
+                self._handlers[fd][1](fd, events)
             except (OSError, IOError), e:
                 if e.args[0] == errno.EPIPE:
                     # Happens when the client closes the connection
@@ -245,18 +235,6 @@ def install():
         def timedelta_to_seconds(td):
             """Equivalent to td.total_seconds() (introduced in python 2.7)."""
             return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10 ** 6) / float(10 ** 6)
-
-        # Comparison methods to sort by deadline, with object id as a tiebreaker
-        # to guarantee a consistent ordering.  The heapq module uses __le__
-        # in python2.5, and __lt__ in 2.6+ (sort() and most other comparisons
-        # use __lt__).
-        def __lt__(self, other):
-            return ((self.deadline, id(self)) <
-                    (other.deadline, id(other)))
-
-        def __le__(self, other):
-            return ((self.deadline, id(self)) <=
-                    (other.deadline, id(other)))
 
     class PeriodicCallback(object):
         def __init__(self, callback, callback_time, io_loop=None):
