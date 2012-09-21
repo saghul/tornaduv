@@ -16,8 +16,19 @@ Motivation
 ==========
 
 This is an experimental project to test pyuv's capabilities with a
-big framework such as Tornado. It still doesn't implement all it's
-features, but HTTP and sockets are working :-)
+big framework such as Tornado.
+
+
+Installation
+============
+
+tornado_pyuv requires pyuv >= 0.9.0 and Tornado > 2.4.0, so right now the
+only way to get those is by installing them straight from GitHub:
+
+::
+
+    pip install git+https://github.com/saghul/pyuv.git
+    pip install git+https://github.com/facebook/tornado.git
 
 
 Using it
