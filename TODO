@@ -1,3 +1,5 @@
 
-- Use pyuv.Process to implement tornado.process
+- Fix failing or hanging tets
+    For some reason they seem to all run OK if each suite is run
+    independently. When they are all run together weird thigs happen.
 
