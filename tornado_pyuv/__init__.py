@@ -23,6 +23,7 @@ def install():
             self._async.send()
 
     class IOLoop(object):
+        NONE = _IOLoop.NONE
         READ = _IOLoop.READ
         WRITE = _IOLoop.WRITE
         ERROR = _IOLoop.ERROR
