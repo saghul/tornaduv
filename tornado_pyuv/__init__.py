@@ -221,7 +221,7 @@ def install():
                 raise TypeError("Unsupported deadline %r" % deadline)
             self.callback = callback
             self.io_loop = io_loop or IOLoop.instance()
-            timeout = deadline - time.time()
+            timeout = max(self.deadline - time.time(), 0)
             self._timer = pyuv.Timer(self.io_loop._loop)
             self._timer.start(self._timer_cb, timeout, 0.0)
 
