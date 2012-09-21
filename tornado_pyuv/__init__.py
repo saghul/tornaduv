@@ -17,11 +17,8 @@ def install():
 
     class Waker(object):
         def __init__(self, loop):
-            self._lock = thread.allocate_lock()
-            self._async = pyuv.Async(loop, self._cb)
+            self._async = pyuv.Async(loop, lambda x: None)
             self._async.unref()
-        def _cb(self, handle):
-            pass
         def wake(self):
             self._async.send()
 
