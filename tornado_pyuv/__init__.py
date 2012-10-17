@@ -123,6 +123,7 @@ class IOLoop(object):
             return
         self._thread_ident = thread.get_ident()
         self._running = True
+        self._loop.udate_time()
         while self._running:
             # We should use run() here, but we need to have break() for that
             self._loop.run_once()
