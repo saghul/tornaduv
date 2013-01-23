@@ -120,7 +120,6 @@ class IOLoop(object):
             return
         self._thread_ident = thread.get_ident()
         self._running = True
-        self._loop.update_time()
         while self._running:
             # We should use run() here, but we'd need to have break() for that
             self._loop.run(pyuv.UV_RUN_ONCE)
