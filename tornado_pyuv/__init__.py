@@ -76,12 +76,12 @@ class IOLoop(object):
         self._loop.walk(cb)
 
     def close(self, all_fds=False):
-        if all_fds:
-            self._handlers = {}
-            self._close_loop_handles()
-            # Run the loop so the close callbacks are fired and memory is freed
-            # It will not block because all handles are closed
-            assert not self._loop.run_once(), "there are pending handles"
+        # NOTE: all_fds is disregarded, everything is closed
+        self._handlers = {}
+        self._close_loop_handles()
+        # Run the loop so the close callbacks are fired and memory is freed
+        assert not self._loop.run(pyuv.UV_RUN_NOWAIT), "there are pending handles"
+        self._loop = None
 
     def add_handler(self, fd, handler, events):
         if fd in self._handlers:
@@ -125,8 +125,8 @@ class IOLoop(object):
         self._running = True
         self._loop.update_time()
         while self._running:
-            # We should use run() here, but we need to have break() for that
-            self._loop.run_once()
+            # We should use run() here, but we'd need to have break() for that
+            self._loop.run(pyuv.UV_RUN_ONCE)
         # reset the stopped flag so another start/stop pair can be issued
         self._stopped = False
 
