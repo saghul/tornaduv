@@ -2,14 +2,13 @@
 A Tornado IOLoop based on pyuv
 ==============================
 
-tornado-pyuv is a Tornado IOLoop implementation which uses pyuv
-as the networking library instead of the builtin epoll and kqueue
-pollers included in Tornado.
+tornado-pyuv is a `Tornado <http://www.tornadoweb.org/>_` IOLoop implementation
+which uses `pyuv <http://github.com/saghul/pyuv>`_ as the networking library instead
+of the builtin epoll and kqueue pollers included in Tornado.
 
 pyuv is a Python interface for libuv, a high performance asynchronous
 networking library used as the platform layer for NodeJS.
 
-Source code is on `GitHub <http://github.com/saghul/pyuv>`_.
 
 
 Motivation
@@ -22,13 +21,12 @@ big framework such as Tornado.
 Installation
 ============
 
-tornado_pyuv requires pyuv >= 0.9.0 and Tornado > 2.4.0, so right now the
-only way to get those is by installing them straight from GitHub:
+tornado_pyuv requires pyuv (master) and Tornado >= 2.4.0.
 
 ::
 
     pip install git+https://github.com/saghul/pyuv.git
-    pip install git+https://github.com/facebook/tornado.git
+    pip install tornado
 
 
 Using it
@@ -42,6 +40,16 @@ of your project, before importing anything from Tornado:
 
     import tornado_pyuv
     tornado_pyuv.install()
+
+
+Testing
+=======
+
+If you want to run the Tornado test suite using tornado_pyuv run the following command:
+
+::
+
+    python -m tornado_pyuv.runtests
 
 
 Author
