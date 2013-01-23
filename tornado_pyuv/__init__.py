@@ -39,7 +39,6 @@ class IOLoop(object):
         self._running = False
         self._stopped = False
         self._thread_ident = None
-
         self._cb_handle = pyuv.Prepare(self._loop)
         self._waker = Waker(self._loop)
 
@@ -88,18 +87,18 @@ class IOLoop(object):
         poll.fd = fd
         self._handlers[fd] = (poll, stack_context.wrap(handler))
         poll_events = 0
-        if (events & IOLoop.READ):
+        if events & IOLoop.READ:
             poll_events |= pyuv.UV_READABLE
-        if (events & IOLoop.WRITE):
+        if events & IOLoop.WRITE:
             poll_events |= pyuv.UV_WRITABLE
         poll.start(poll_events, self._handle_poll_events)
 
     def update_handler(self, fd, events):
         poll, _ = self._handlers[fd]
         poll_events = 0
-        if (events & IOLoop.READ):
+        if events & IOLoop.READ:
             poll_events |= pyuv.UV_READABLE
-        if (events & IOLoop.WRITE):
+        if events & IOLoop.WRITE:
             poll_events |= pyuv.UV_WRITABLE
         poll.start(poll_events, self._handle_poll_events)
 
@@ -182,13 +181,15 @@ class IOLoop(object):
             # handler gets and handles the error
             events |= IOLoop.READ
             events |= IOLoop.WRITE
+        else:
+            if poll_events & pyuv.UV_READABLE:
                 events |= IOLoop.READ
-            if (poll_events & pyuv.UV_WRITABLE):
+            if poll_events & pyuv.UV_WRITABLE:
                 events |= IOLoop.WRITE
         fd = handle.fd
         try:
             self._handlers[fd][1](fd, events)
-        except (OSError, IOError), e:
+        except (OSError, IOError) as e:
             if e.args[0] == errno.EPIPE:
                 # Happens when the client closes the connection
                 pass
