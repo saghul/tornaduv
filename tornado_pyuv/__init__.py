@@ -179,8 +179,11 @@ class IOLoop(object):
 
     def _handle_poll_events(self, handle, poll_events, error):
         events = 0
-        if error is None:
-            if (poll_events & pyuv.UV_READABLE):
+        if error is not None:
+            # Some error was detected, signal readability and writability so that the
+            # handler gets and handles the error
+            events |= IOLoop.READ
+            events |= IOLoop.WRITE
                 events |= IOLoop.READ
             if (poll_events & pyuv.UV_WRITABLE):
                 events |= IOLoop.WRITE
