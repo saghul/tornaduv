@@ -5,7 +5,7 @@ import sys
 import tornado_pyuv
 tornado_pyuv.install()
 
-from tornado.test.util import unittest
+import unittest
 
 
 TEST_MODULES = [
