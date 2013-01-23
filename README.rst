@@ -2,7 +2,7 @@
 A Tornado IOLoop based on pyuv
 ==============================
 
-tornado-pyuv is a `Tornado <http://www.tornadoweb.org/>_` IOLoop implementation
+tornado-pyuv is a `Tornado <http://www.tornadoweb.org/>`_ IOLoop implementation
 which uses `pyuv <http://github.com/saghul/pyuv>`_ as the networking library instead
 of the builtin epoll and kqueue pollers included in Tornado.
 
@@ -27,6 +27,10 @@ tornado_pyuv requires pyuv (master) and Tornado >= 2.4.0.
 
     pip install git+https://github.com/saghul/pyuv.git
     pip install tornado
+
+
+.. note::
+    tornado_pyuv doesn't currently run with Tornado master, use Torndo branch 2.4.
 
 
 Using it
