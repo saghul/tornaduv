@@ -82,6 +82,8 @@ class IOLoop(object):
 
     def close(self, all_fds=False):
         # NOTE: all_fds is disregarded, everything is closed
+        self._signal_checker.close()
+        self._fdwalker.close()
         self._handlers = {}
         self._close_loop_handles()
         # Run the loop so the close callbacks are fired and memory is freed
