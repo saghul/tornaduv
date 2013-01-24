@@ -4,11 +4,18 @@ import pyuv
 import datetime
 import errno
 import logging
+import os
 import time
 import thread
 
+try:
+    import signal
+except ImportError:
+    signal = None
+
 from collections import deque
 from tornado import ioloop, stack_context
+from tornado.platform.auto import Waker as FDWaker
 
 
 class Waker(object):
@@ -40,6 +47,8 @@ class IOLoop(object):
         self._thread_ident = None
         self._cb_handle = pyuv.Prepare(self._loop)
         self._waker = Waker(self._loop)
+        self._fdwaker = FDWaker()
+        self._signal_checker = pyuv.util.SignalChecker(self._loop, self._fdwaker.reader.fileno())
 
     @staticmethod
     def instance():
@@ -119,6 +128,34 @@ class IOLoop(object):
             return
         self._thread_ident = thread.get_ident()
         self._running = True
+
+        # pyuv won't interate the loop if the poll is interrupted by
+        # a signal, so make sure we can wake it up to catch signals
+        # registered with the signal module
+        #
+        # If someone has already set a wakeup fd, we don't want to
+        # disturb it.  This is an issue for twisted, which does its
+        # SIGCHILD processing in response to its own wakeup fd being
+        # written to.  As long as the wakeup fd is registered on the IOLoop,
+        # the loop will still wake up and everything should work.
+        old_wakeup_fd = None
+        self._signal_checker.stop()
+        if hasattr(signal, 'set_wakeup_fd') and os.name == 'posix':
+            # requires python 2.6+, unix.  set_wakeup_fd exists but crashes
+            # the python process on windows.
+            try:
+                old_wakeup_fd = signal.set_wakeup_fd(self._fdwaker.writer.fileno())
+                if old_wakeup_fd != -1:
+                    # Already set, restore previous value.  This is a little racy,
+                    # but there's no clean get_wakeup_fd and in real use the
+                    # IOLoop is just started once at the beginning.
+                    signal.set_wakeup_fd(old_wakeup_fd)
+                    old_wakeup_fd = None
+                else:
+                    self._signal_checker.start()
+            except ValueError:  # non-main thread
+                pass
+
         while self._running:
             # We should use run() here, but we'd need to have break() for that
             self._loop.run(pyuv.UV_RUN_ONCE)
