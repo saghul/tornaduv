@@ -49,6 +49,7 @@ class IOLoop(object):
         self._waker = Waker(self._loop)
         self._fdwaker = FDWaker()
         self._signal_checker = pyuv.util.SignalChecker(self._loop, self._fdwaker.reader.fileno())
+        self._signal_checker.unref()
 
     @staticmethod
     def instance():
