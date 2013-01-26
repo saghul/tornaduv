@@ -10,7 +10,6 @@ pyuv is a Python interface for libuv, a high performance asynchronous
 networking library used as the platform layer for NodeJS.
 
 
-
 Motivation
 ==========
 
@@ -21,12 +20,13 @@ big framework such as Tornado.
 Installation
 ============
 
-tornado_pyuv requires pyuv (master) and Tornado >= 2.4.0.
+tornado-pyuv requires pyuv (master) and Tornado >= 2.4.0.
 
 ::
 
     pip install git+https://github.com/saghul/pyuv.git
     pip install tornado
+    python setup.py install
 
 
 .. note::
