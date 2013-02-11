@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from setuptools import setup
+from tornado_pyuv import __version__
+
 
 setup(
     name             = 'tornado-pyuv',
-    version          = '0.3.0.dev',
+    version          = __version__,
     url              = 'https://github.com/saghul/tornado-pyuv',
     author           = 'Saúl Ibarra Corretgé',
     author_email     = 'saghul@gmail.com',
