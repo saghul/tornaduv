@@ -29,10 +29,6 @@ tornado-pyuv requires pyuv (master) and Tornado >= 2.4.0.
     python setup.py install
 
 
-.. note::
-    tornado_pyuv doesn't currently run with Tornado master, use Torndo branch 2.4.
-
-
 Using it
 ========
 
