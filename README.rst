@@ -10,27 +10,18 @@ pyuv is a Python interface for libuv, a high performance asynchronous
 networking library used as the platform layer for NodeJS.
 
 
-Motivation
-==========
-
-This is an experimental project to test pyuv's capabilities with a
-big framework such as Tornado.
-
-
 Installation
 ============
 
-tornado-pyuv requires pyuv (master) and Tornado >= 2.4.0.
+tornado-pyuv requires pyuv (master) and Tornado (master).
 
 ::
 
-    pip install git+https://github.com/saghul/pyuv.git
-    pip install tornado
+    pip install https://github.com/saghul/pyuv.git
+    pip install https://github.com/facebook/tornado.git
+    git clone https://github.com/saghul/tornado-pyuv.git
+    cd tornado-pyuv
     python setup.py install
-
-
-.. note::
-    tornado_pyuv doesn't currently run with Tornado master, use Torndo branch 2.4.
 
 
 Using it
@@ -38,12 +29,13 @@ Using it
 
 In order to use tornado-pyuv, Tornado needs to be instructed to use
 our IOLoop. In order to do that add the following lines at the beginning
-of your project, before importing anything from Tornado:
+of your project:
 
 ::
 
-    import tornado_pyuv
-    tornado_pyuv.install()
+    from tornado.ioloop import IOLoop
+    from tornado_pyuv import UVLoop
+    IOLoop.configure(UVLoop)
 
 
 Testing
@@ -53,7 +45,7 @@ If you want to run the Tornado test suite using tornado_pyuv run the following c
 
 ::
 
-    python -m tornado_pyuv.runtests
+    python -m tornado.test.runtests --ioloop='tornado_pyuv.UVLoop' --verbose
 
 
 Author
