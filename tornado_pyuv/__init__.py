@@ -250,31 +250,3 @@ class _Timeout(object):
         """Equivalent to td.total_seconds() (introduced in python 2.7)."""
         return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10 ** 6) / float(10 ** 6)
 
-
-class PeriodicCallback(object):
-    def __init__(self, callback, callback_time, io_loop=None):
-        self.callback = callback
-        self.callback_time = callback_time / 1000.0
-        self.io_loop = io_loop or IOLoop.instance()
-        self._timer = pyuv.Timer(self.io_loop._loop)
-        self._running = False
-
-    def _timer_cb(self, timer):
-        try:
-            self.callback()
-        except Exception:
-            logging.error("Error in periodic callback", exc_info=True)
-
-    def start(self):
-        if self._running:
-            return
-        self._running = True
-        self._timer.start(self._timer_cb, self.callback_time, self.callback_time)
-        self._timer.repeat = self.callback_time
-
-    def stop(self):
-        if not self._running:
-            return
-        self._running = False
-        self._timer.stop()
-
