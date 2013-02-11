@@ -3,9 +3,9 @@ import pyuv
 
 import datetime
 import errno
+import functools
 import logging
 import os
-import time
 import thread
 
 try:
@@ -14,8 +14,11 @@ except ImportError:
     signal = None
 
 from collections import deque
-from tornado import ioloop, stack_context
+from tornado import stack_context
+from tornado.ioloop import IOLoop
 from tornado.platform.auto import Waker as FDWaker
+
+__all__ = ('UVLoop')
 
 
 class Waker(object):
@@ -26,17 +29,9 @@ class Waker(object):
         self._async.send()
 
 
-class IOLoop(object):
-    NONE = ioloop.IOLoop.NONE
-    READ = ioloop.IOLoop.READ
-    WRITE = ioloop.IOLoop.WRITE
-    ERROR = ioloop.IOLoop.ERROR
+class UVLoop(IOLoop):
 
-    _instance_lock = thread.allocate_lock()
-
-    def __init__(self, impl=None):
-        if impl is not None:
-            raise RuntimeError('When using pyuv the poller implementation cannot be specifiedi')
+    def initialize(self):
         self._loop = pyuv.Loop()
         self._handlers = {}
         self._callbacks = deque()
@@ -44,6 +39,7 @@ class IOLoop(object):
         self._timeouts = set()
         self._running = False
         self._stopped = False
+        self._closing = False
         self._thread_ident = None
         self._cb_handle = pyuv.Prepare(self._loop)
         self._waker = Waker(self._loop)
@@ -51,38 +47,10 @@ class IOLoop(object):
         self._signal_checker = pyuv.util.SignalChecker(self._loop, self._fdwaker.reader.fileno())
         self._signal_checker.unref()
 
-    @staticmethod
-    def instance():
-        if not hasattr(IOLoop, "_instance"):
-            with IOLoop._instance_lock:
-                if not hasattr(IOLoop, "_instance"):
-                    # New instance after double check
-                    IOLoop._instance = IOLoop()
-        return IOLoop._instance
-
-    @staticmethod
-    def initialized():
-        """Returns true if the singleton instance has been created."""
-        return hasattr(IOLoop, "_instance")
-
-    def install(self):
-        """Installs this IOLoop object as the singleton instance.
-
-        This is normally not necessary as `instance()` will create
-        an IOLoop on demand, but you may want to call `install` to use
-        a custom subclass of IOLoop.
-        """
-        assert not IOLoop.initialized()
-        IOLoop._instance = self
-
-    def _close_loop_handles(self):
-        def cb(handle):
-            if not handle.closed:
-                handle.close()
-        self._loop.walk(cb)
-
     def close(self, all_fds=False):
         # NOTE: all_fds is disregarded, everything is closed
+        with self._callback_lock:
+            self._closing = True
         self._fdwaker.close()
         self._handlers = {}
         self._close_loop_handles()
@@ -115,19 +83,21 @@ class IOLoop(object):
     def remove_handler(self, fd):
         self._handlers.pop(fd, None)
 
-    def set_blocking_signal_threshold(self, seconds, action):
-        raise NotImplementedError
-
-    def set_blocking_log_threshold(self, seconds):
-        raise NotImplementedError
-
-    def log_stack(self, signal, frame):
-        raise NotImplementedError
-
     def start(self):
+        if not logging.getLogger().handlers:
+            # The IOLoop catches and logs exceptions, so it's
+            # important that log output be visible.  However, python's
+            # default behavior for non-root loggers (prior to python
+            # 3.2) is to print an unhelpful "no handlers could be
+            # found" message rather than the actual log entry, so we
+            # must explicitly configure logging if we've made it this
+            # far without anything.
+            logging.basicConfig()
         if self._stopped:
             self._stopped = False
             return
+        old_current = getattr(IOLoop._current, "instance", None)
+        IOLoop._current.instance = self
         self._thread_ident = thread.get_ident()
         self._running = True
 
@@ -159,19 +129,17 @@ class IOLoop(object):
                 pass
 
         while self._running:
-            # We should use run() here, but we'd need to have break() for that
             self._loop.run(pyuv.UV_RUN_ONCE)
         # reset the stopped flag so another start/stop pair can be issued
         self._stopped = False
+        IOLoop._current.instance = old_current
+        if old_wakeup_fd is not None:
+            signal.set_wakeup_fd(old_wakeup_fd)
 
     def stop(self):
         self._running = False
         self._stopped = True
         self._waker.wake()
-
-    def running(self):
-        """Returns true if this IOLoop is currently running."""
-        return self._running
 
     def add_timeout(self, deadline, callback):
         timeout = _Timeout(deadline, stack_context.wrap(callback), io_loop=self)
@@ -181,35 +149,35 @@ class IOLoop(object):
     def remove_timeout(self, timeout):
         self._timeouts.remove(timeout)
         timer = timeout._timer
-        if timer.active:
-            timer.stop()
+        timer.stop()
 
-    def add_callback(self, callback):
+    def add_callback(self, callback, *args, **kwargs):
         with self._callback_lock:
+            if self._closing:
+                raise RuntimeError("IOLoop is closing")
             was_active = self._cb_handle.active
-            self._callbacks.append(stack_context.wrap(callback))
+            self._callbacks.append(functools.partial(stack_context.wrap(callback), *args, **kwargs))
             if not was_active:
                 self._cb_handle.start(self._prepare_cb)
         if not was_active or thread.get_ident() != self._thread_ident:
             self._waker.wake()
 
-    def handle_callback_exception(self, callback):
-        """This method is called whenever a callback run by the IOLoop
-        throws an exception.
-
-        By default simply logs the exception as an error.  Subclasses
-        may override this method to customize reporting of exceptions.
-
-        The exception itself is not passed explicitly, but is available
-        in sys.exc_info.
-        """
-        logging.error("Exception in callback %r", callback, exc_info=True)
-
-    def _run_callback(self, callback):
-        try:
-            callback()
-        except Exception:
-            self.handle_callback_exception(callback)
+    def add_callback_from_signal(self, callback, *args, **kwargs):
+        with stack_context.NullContext():
+            if thread.get_ident() != self._thread_ident:
+                # if the signal is handled on another thread, we can add
+                # it normally (modulo the NullContext)
+                self.add_callback(callback, *args, **kwargs)
+            else:
+                # If we're on the IOLoop's thread, we cannot use
+                # the regular add_callback because it may deadlock on
+                # _callback_lock.  Blindly insert into self._callbacks.
+                # This is safe because the GIL makes list.append atomic.
+                # One subtlety is that if the signal interrupted the
+                # _callback_lock block in IOLoop.start, we may modify
+                # either the old or new version of self._callbacks,
+                # but either way will work.
+                self._callbacks.append(functools.partial(stack_context.wrap(callback), *args, **kwargs))
 
     def _handle_poll_events(self, handle, poll_events, error):
         events = 0
@@ -243,6 +211,12 @@ class IOLoop(object):
         while callbacks:
             self._run_callback(callbacks.popleft())
 
+    def _close_loop_handles(self):
+        def cb(handle):
+            if not handle.closed:
+                handle.close()
+        self._loop.walk(cb)
+
 
 class _Timeout(object):
     """An IOLoop timeout, a UNIX timestamp and a callback"""
@@ -250,16 +224,17 @@ class _Timeout(object):
     # Reduce memory overhead when there are lots of pending callbacks
     __slots__ = ['deadline', 'callback', 'io_loop', '_timer']
 
-    def __init__(self, deadline, callback, io_loop=None):
+    def __init__(self, deadline, callback, io_loop):
+        now = io_loop.time()
         if isinstance(deadline, (int, long, float)):
             self.deadline = deadline
         elif isinstance(deadline, datetime.timedelta):
-            self.deadline = time.time() + _Timeout.timedelta_to_seconds(deadline)
+            self.deadline = now + _Timeout.timedelta_to_seconds(deadline)
         else:
             raise TypeError("Unsupported deadline %r" % deadline)
         self.callback = callback
         self.io_loop = io_loop or IOLoop.instance()
-        timeout = max(self.deadline - time.time(), 0)
+        timeout = max(self.deadline - now, 0)
         self._timer = pyuv.Timer(self.io_loop._loop)
         self._timer.start(self._timer_cb, timeout, 0.0)
 
@@ -302,11 +277,4 @@ class PeriodicCallback(object):
             return
         self._running = False
         self._timer.stop()
-
-
-def install():
-    # Patch Tornado's classes with ours
-    ioloop.IOLoop = IOLoop
-    ioloop._Timeout = _Timeout
-    ioloop.PeriodicCallback = PeriodicCallback
 
