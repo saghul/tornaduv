@@ -81,7 +81,9 @@ class UVLoop(IOLoop):
         poll.start(poll_events, self._handle_poll_events)
 
     def remove_handler(self, fd):
-        self._handlers.pop(fd, None)
+        items = self._handlers.pop(fd, None)
+        if items is not None:
+            items[0].close()
 
     def start(self):
         if not logging.getLogger().handlers:
