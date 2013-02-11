@@ -182,6 +182,9 @@ class UVLoop(IOLoop):
                 # either the old or new version of self._callbacks,
                 # but either way will work.
                 self._callbacks.append(functools.partial(stack_context.wrap(callback), *args, **kwargs))
+                if not self._cb_handle.active:
+                    self._cb_handle.start(self._prepare_cb)
+                    self._waker.wake()
 
     def _handle_poll_events(self, handle, poll_events, error):
         events = 0
