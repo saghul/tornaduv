@@ -14,9 +14,6 @@
 # % sort time
 # % stats 20
 
-import tornado_pyuv
-tornado_pyuv.install()
-
 from tornado.ioloop import IOLoop
 from tornado.options import define, options, parse_command_line
 from tornado.web import RequestHandler, Application
@@ -24,6 +21,11 @@ from tornado.web import RequestHandler, Application
 import random
 import signal
 import subprocess
+
+from tornado_pyuv import UVLoop
+
+# Use UVLoop
+IOLoop.configure(UVLoop)
 
 # choose a random port to avoid colliding with TIME_WAIT sockets left over
 # from previous runs.

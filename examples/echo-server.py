@@ -1,11 +1,11 @@
 
-import tornado_pyuv
-tornado_pyuv.install()
-
 import signal
 
 from tornado.ioloop import IOLoop
-from tornado.netutil import TCPServer
+from tornado.tcpserver import TCPServer
+
+from tornado_pyuv import UVLoop
+IOLoop.configure(UVLoop)
 
 
 def handle_signal(sig, frame):
