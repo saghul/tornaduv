@@ -26,7 +26,6 @@ __version__ = '0.3.0.dev'
 class Waker(object):
     def __init__(self, loop):
         self._async = pyuv.Async(loop, lambda x: None)
-        self._async.unref()
     def wake(self):
         self._async.send()
 
