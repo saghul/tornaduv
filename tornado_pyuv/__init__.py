@@ -13,7 +13,6 @@ try:
 except ImportError:
     signal = None
 
-from collections import deque
 from tornado import stack_context
 from tornado.ioloop import IOLoop
 from tornado.platform.auto import Waker as FDWaker
@@ -35,7 +34,7 @@ class UVLoop(IOLoop):
     def initialize(self):
         self._loop = pyuv.Loop()
         self._handlers = {}
-        self._callbacks = deque()
+        self._callbacks = []
         self._callback_lock = thread.allocate_lock()
         self._timeouts = set()
         self._running = False
@@ -214,9 +213,9 @@ class UVLoop(IOLoop):
         self._cb_handle.stop()
         with self._callback_lock:
             callbacks = self._callbacks
-            self._callbacks = deque()
-        while callbacks:
-            self._run_callback(callbacks.popleft())
+            self._callbacks = []
+        for callback in callbacks:
+            self._run_callback(callback)
 
     def _close_loop_handles(self):
         def cb(handle):
