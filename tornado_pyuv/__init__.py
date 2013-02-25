@@ -37,7 +37,6 @@ class UVLoop(IOLoop):
         self._callbacks = []
         self._callback_lock = thread.allocate_lock()
         self._timeouts = set()
-        self._running = False
         self._stopped = False
         self._closing = False
         self._thread_ident = None
@@ -102,7 +101,6 @@ class UVLoop(IOLoop):
         old_current = getattr(IOLoop._current, "instance", None)
         IOLoop._current.instance = self
         self._thread_ident = thread.get_ident()
-        self._running = True
 
         # pyuv won't interate the loop if the poll is interrupted by
         # a signal, so make sure we can wake it up to catch signals
@@ -131,8 +129,14 @@ class UVLoop(IOLoop):
             except ValueError:  # non-main thread
                 pass
 
-        while self._running:
-            self._loop.run(pyuv.UV_RUN_ONCE)
+        # This timer will prevent busy-looping in case there is nothing scheduled in the loop
+        timer = pyuv.Timer(self._loop)
+        timer.start(lambda x: None, 3600, 3600)
+
+        self._loop.run(pyuv.UV_RUN_DEFAULT)
+
+        timer.close()
+
         # reset the stopped flag so another start/stop pair can be issued
         self._stopped = False
         IOLoop._current.instance = old_current
@@ -140,8 +144,8 @@ class UVLoop(IOLoop):
             signal.set_wakeup_fd(old_wakeup_fd)
 
     def stop(self):
-        self._running = False
         self._stopped = True
+        self._loop.stop()
         self._waker.wake()
 
     def add_timeout(self, deadline, callback):
