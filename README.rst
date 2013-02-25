@@ -17,8 +17,8 @@ tornado-pyuv requires pyuv (master) and Tornado (master).
 
 ::
 
-    pip install https://github.com/saghul/pyuv.git
-    pip install https://github.com/facebook/tornado.git
+    pip install git+https://github.com/saghul/pyuv.git
+    pip install git+https://github.com/facebook/tornado.git
     git clone https://github.com/saghul/tornado-pyuv.git
     cd tornado-pyuv
     python setup.py install
