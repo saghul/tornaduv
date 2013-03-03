@@ -15,6 +15,7 @@ except ImportError:
 
 from tornado import stack_context
 from tornado.ioloop import IOLoop
+from tornado.log import gen_log
 from tornado.platform.auto import Waker as FDWaker
 
 __all__ = ('UVLoop')
@@ -47,11 +48,15 @@ class UVLoop(IOLoop):
         self._signal_checker.unref()
 
     def close(self, all_fds=False):
-        # NOTE: all_fds is disregarded, everything is closed
         with self._callback_lock:
             self._closing = True
+        if all_fds:
+            for fd in self._handlers.keys():
+                try:
+                    os.close(fd)
+                except Exception:
+                    gen_log.debug("error closing fd %s", fd, exc_info=True)
         self._fdwaker.close()
-        self._handlers = {}
         self._close_loop_handles()
         # Run the loop so the close callbacks are fired and memory is freed
         assert not self._loop.run(pyuv.UV_RUN_NOWAIT), "there are pending handles"
