@@ -159,9 +159,9 @@ class UVLoop(IOLoop):
         return timeout
 
     def remove_timeout(self, timeout):
-        self._timeouts.remove(timeout)
-        timer = timeout._timer
-        timer.stop()
+        self._timeouts.discard(timeout)
+        if timeout._timer:
+            timeout._timer.stop()
 
     def add_callback(self, callback, *args, **kwargs):
         with self._callback_lock:
