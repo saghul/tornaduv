@@ -13,11 +13,11 @@ networking library used as the platform layer for NodeJS.
 Installation
 ============
 
-tornado-pyuv requires pyuv (master) and Tornado (master).
+tornado-pyuv requires pyuv >= 0.10.0 and Tornado (master).
 
 ::
 
-    pip install git+https://github.com/saghul/pyuv.git
+    pip install -U pyuv
     pip install git+https://github.com/facebook/tornado.git
     git clone https://github.com/saghul/tornado-pyuv.git
     cd tornado-pyuv
