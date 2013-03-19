@@ -20,11 +20,11 @@ big framework such as Tornado.
 Installation
 ============
 
-tornado-pyuv requires pyuv (master) and Tornado >= 2.4.0.
+tornado-pyuv requires pyuv >= 0.10.0 and Tornado >= 2.4.0.
 
 ::
 
-    pip install git+https://github.com/saghul/pyuv.git
+    pip install -U pyuv
     pip install tornado
     python setup.py install
 
