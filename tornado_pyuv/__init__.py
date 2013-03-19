@@ -5,6 +5,7 @@ import datetime
 import errno
 import functools
 import logging
+import numbers
 import os
 import thread
 
@@ -241,7 +242,7 @@ class _Timeout(object):
 
     def __init__(self, deadline, callback, io_loop):
         now = io_loop.time()
-        if isinstance(deadline, (int, long, float)):
+        if isinstance(deadline, numbers.Real):
             self.deadline = deadline
         elif isinstance(deadline, datetime.timedelta):
             self.deadline = now + _Timeout.timedelta_to_seconds(deadline)
