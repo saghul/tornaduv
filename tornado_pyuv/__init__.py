@@ -237,8 +237,7 @@ class UVLoop(IOLoop):
 class _Timeout(object):
     """An IOLoop timeout, a UNIX timestamp and a callback"""
 
-    # Reduce memory overhead when there are lots of pending callbacks
-    __slots__ = ['deadline', 'callback', 'io_loop', '_timer']
+    __slots__ = ['deadline', 'callback', '_timer']
 
     def __init__(self, deadline, callback, io_loop):
         now = io_loop.time()
@@ -249,17 +248,15 @@ class _Timeout(object):
         else:
             raise TypeError("Unsupported deadline %r" % deadline)
         self.callback = callback
-        self.io_loop = io_loop or IOLoop.instance()
         timeout = max(self.deadline - now, 0)
-        self._timer = pyuv.Timer(self.io_loop._loop)
-        self._timer.start(self._timer_cb, timeout, 0.0)
+        self._timer = pyuv.Timer(io_loop._loop)
+        self._timer.start(functools.partial(self._timer_cb, io_loop), timeout, 0.0)
 
-    def _timer_cb(self, handle):
+    def _timer_cb(self, io_loop, handle):
         self._timer.close()
         self._timer = None
-        self.io_loop._timeouts.remove(self)
-        self.io_loop._run_callback(self.callback)
-        self.io_loop = None
+        io_loop._timeouts.remove(self)
+        io_loop._run_callback(self.callback)
 
     @staticmethod
     def timedelta_to_seconds(td):
