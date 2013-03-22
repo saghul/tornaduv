@@ -135,13 +135,7 @@ class UVLoop(IOLoop):
             except ValueError:  # non-main thread
                 pass
 
-        # This timer will prevent busy-looping in case there is nothing scheduled in the loop
-        timer = pyuv.Timer(self._loop)
-        timer.start(lambda x: None, 3600, 3600)
-
         self._loop.run(pyuv.UV_RUN_DEFAULT)
-
-        timer.close()
 
         # reset the stopped flag so another start/stop pair can be issued
         self._stopped = False
