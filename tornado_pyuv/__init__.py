@@ -21,7 +21,7 @@ from tornado.platform.auto import Waker as FDWaker
 
 __all__ = ('UVLoop')
 
-__version__ = '0.3.0.dev'
+__version__ = '0.3.0'
 
 
 class Waker(object):
