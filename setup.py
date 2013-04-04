@@ -12,6 +12,7 @@ setup(
     author_email     = 'saghul@gmail.com',
     description      = 'Tornado IOLoop implementation with pyuv',
     long_description = open('README.rst', 'r').read(),
-    packages         = ['tornado_pyuv']
+    packages         = ['tornado_pyuv'],
+    install_requires = REQUIREMENTS = [i.strip() for i in open("requirements.txt").readlines() if i.strip()]
 )
 
