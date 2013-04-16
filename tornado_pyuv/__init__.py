@@ -149,7 +149,7 @@ class UVLoop(IOLoop):
         self._waker.wake()
 
     def add_timeout(self, deadline, callback):
-        timeout = _Timeout(deadline, stack_context.wrap(callback), io_loop=self)
+        timeout = _Timeout(deadline, stack_context.wrap(callback), self)
         self._timeouts.add(timeout)
         return timeout
 
@@ -243,11 +243,12 @@ class _Timeout(object):
         self.callback = callback
         timeout = max(self.deadline - now, 0)
         self._timer = pyuv.Timer(io_loop._loop)
-        self._timer.start(functools.partial(self._timer_cb, io_loop), timeout, 0.0)
+        self._timer.start(self._timer_cb, timeout, 0.0)
 
-    def _timer_cb(self, io_loop, handle):
+    def _timer_cb(self, handle):
         self._timer.close()
         self._timer = None
+        io_loop = IOLoop.current()
         io_loop._timeouts.remove(self)
         io_loop._run_callback(self.callback)
 
