@@ -194,8 +194,7 @@ class UVLoop(IOLoop):
         if error is not None:
             # Some error was detected, signal readability and writability so that the
             # handler gets and handles the error
-            events |= IOLoop.READ
-            events |= IOLoop.WRITE
+            events |= IOLoop.READ|IOLoop.WRITE
         else:
             if poll_events & pyuv.UV_READABLE:
                 events |= IOLoop.READ
