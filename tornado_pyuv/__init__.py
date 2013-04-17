@@ -43,10 +43,10 @@ class UVLoop(IOLoop):
         self._closing = False
         self._thread_ident = None
         self._cb_handle = pyuv.Prepare(self._loop)
+        self._cb_handle.start(self._prepare_cb)
         self._waker = Waker(self._loop)
         self._fdwaker = FDWaker()
         self._signal_checker = pyuv.util.SignalChecker(self._loop, self._fdwaker.reader.fileno())
-        self._signal_checker.unref()
 
     def close(self, all_fds=False):
         with self._callback_lock:
@@ -162,11 +162,9 @@ class UVLoop(IOLoop):
         with self._callback_lock:
             if self._closing:
                 raise RuntimeError("IOLoop is closing")
-            was_active = self._cb_handle.active
+            empty = not self._callbacks
             self._callbacks.append(functools.partial(stack_context.wrap(callback), *args, **kwargs))
-            if not was_active:
-                self._cb_handle.start(self._prepare_cb)
-        if not was_active or thread.get_ident() != self._thread_ident:
+        if empty or thread.get_ident() != self._thread_ident:
             self._waker.wake()
 
     def add_callback_from_signal(self, callback, *args, **kwargs):
@@ -185,9 +183,7 @@ class UVLoop(IOLoop):
                 # either the old or new version of self._callbacks,
                 # but either way will work.
                 self._callbacks.append(functools.partial(stack_context.wrap(callback), *args, **kwargs))
-                if not self._cb_handle.active:
-                    self._cb_handle.start(self._prepare_cb)
-                    self._waker.wake()
+                self._waker.wake()
 
     def _handle_poll_events(self, handle, poll_events, error):
         events = 0
@@ -213,7 +209,6 @@ class UVLoop(IOLoop):
             logging.error("Exception in I/O handler for fd %s", fd, exc_info=True)
 
     def _prepare_cb(self, handle):
-        self._cb_handle.stop()
         with self._callback_lock:
             callbacks = self._callbacks
             self._callbacks = []
