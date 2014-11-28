@@ -34,8 +34,8 @@ class Waker(object):
 
 class UVLoop(IOLoop):
 
-    def initialize(self):
-        self._loop = pyuv.Loop()
+    def initialize(self, loop=None):
+        self._loop = loop or pyuv.Loop()
         self._handlers = {}
         self._callbacks = []
         self._callback_lock = thread.allocate_lock()
