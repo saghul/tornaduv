@@ -27,14 +27,15 @@ __version__ = '0.3.1'
 class Waker(object):
     def __init__(self, loop):
         self._async = pyuv.Async(loop, lambda x: None)
+
     def wake(self):
         self._async.send()
 
 
 class UVLoop(IOLoop):
 
-    def initialize(self):
-        self._loop = pyuv.Loop()
+    def initialize(self, loop=None):
+        self._loop = loop or pyuv.Loop()
         self._handlers = {}
         self._callbacks = []
         self._callback_lock = thread.allocate_lock()
@@ -196,7 +197,7 @@ class UVLoop(IOLoop):
         if error is not None:
             # Some error was detected, signal readability and writability so that the
             # handler gets and handles the error
-            events |= IOLoop.READ|IOLoop.WRITE
+            events |= IOLoop.READ | IOLoop.WRITE
         else:
             if poll_events & pyuv.UV_READABLE:
                 events |= IOLoop.READ
@@ -257,4 +258,3 @@ class _Timeout(object):
     def timedelta_to_seconds(td):
         """Equivalent to td.total_seconds() (introduced in python 2.7)."""
         return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10 ** 6) / float(10 ** 6)
-
