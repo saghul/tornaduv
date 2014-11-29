@@ -221,8 +221,14 @@ class UVLoop(IOLoop):
                 events |= IOLoop.WRITE
         fd = handle.fileno()
         try:
-            _, poll = self._handlers[fd]
-            poll.handler(fd, events)
+            obj, poll = self._handlers[fd]
+            callback_fd = fd
+            if obj is not None and hasattr(obj, 'fileno'):
+                # socket object was passed to add_handler,
+                # return it to the callback
+                callback_fd = obj
+
+            poll.handler(callback_fd, events)
         except (OSError, IOError) as e:
             if e.args[0] == errno.EPIPE:
                 # Happens when the client closes the connection
