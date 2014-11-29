@@ -41,6 +41,7 @@ class UVLoop(IOLoop):
         self._callback_lock = thread.allocate_lock()
         self._timeouts = set()
         self._stopped = False
+        self._running = False
         self._closing = False
         self._thread_ident = None
         self._cb_handle = pyuv.Prepare(self._loop)
@@ -99,6 +100,8 @@ class UVLoop(IOLoop):
             poll.handler = None
 
     def start(self):
+        if self._running:
+            raise RuntimeError('IOLoop is already running')
         if not logging.getLogger().handlers:
             # The IOLoop catches and logs exceptions, so it's
             # important that log output be visible.  However, python's
@@ -142,9 +145,11 @@ class UVLoop(IOLoop):
             except ValueError:  # non-main thread
                 pass
 
+        self._running = True
         self._loop.run(pyuv.UV_RUN_DEFAULT)
 
         # reset the stopped flag so another start/stop pair can be issued
+        self._running = False
         self._stopped = False
         IOLoop._current.instance = old_current
         if old_wakeup_fd is not None:
