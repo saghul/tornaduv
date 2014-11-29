@@ -175,7 +175,9 @@ class UVLoop(IOLoop):
         self._waker.wake()
 
     def add_timeout(self, deadline, callback, *args, **kwargs):
-        callback = functools.partial(stack_context.wrap(callback), *args, **kwargs)
+        callback = stack_context.wrap(callback)
+        if callable(callback):
+            callback = functools.partial(callback, *args, **kwargs)
         timeout = _Timeout(deadline, callback, self)
         self._timeouts.add(timeout)
         return timeout
