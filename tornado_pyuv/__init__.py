@@ -7,7 +7,11 @@ import functools
 import logging
 import numbers
 import os
-import thread
+
+try:
+    import thread
+except ImportError:
+    import _thread as thread  # Python 3
 
 try:
     import signal
