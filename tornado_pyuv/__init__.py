@@ -54,11 +54,19 @@ class UVLoop(IOLoop):
         with self._callback_lock:
             self._closing = True
         if all_fds:
-            for fd in self._handlers.keys():
+            for fd in self._handlers:
+                obj, _ = self._handlers[fd]
+                if obj is not None and hasattr(obj, 'close'):
+                    try:
+                        obj.close()
+                    except Exception:
+                        gen_log.debug("error closing socket object %s", obj,
+                                      exc_info=True)
                 try:
                     os.close(fd)
                 except Exception:
                     gen_log.debug("error closing fd %s", fd, exc_info=True)
+
         self._fdwaker.close()
         self._close_loop_handles()
         # Run the loop so the close callbacks are fired and memory is freed
@@ -66,13 +74,14 @@ class UVLoop(IOLoop):
         self._loop = None
 
     def add_handler(self, fd, handler, events):
+        obj = None
         if hasattr(self, 'split_fd'):
-            fd, _ = self.split_fd(fd)
+            fd, obj = self.split_fd(fd)
         if fd in self._handlers:
             raise IOError("fd %d already registered" % fd)
         poll = pyuv.Poll(self._loop, fd)
         poll.handler = stack_context.wrap(handler)
-        self._handlers[fd] = poll
+        self._handlers[fd] = (obj, poll)
         poll_events = 0
         if events & IOLoop.READ:
             poll_events |= pyuv.UV_READABLE
@@ -83,7 +92,7 @@ class UVLoop(IOLoop):
     def update_handler(self, fd, events):
         if hasattr(self, 'split_fd'):
             fd, _ = self.split_fd(fd)
-        poll = self._handlers[fd]
+        _, poll = self._handlers[fd]
         poll_events = 0
         if events & IOLoop.READ:
             poll_events |= pyuv.UV_READABLE
@@ -94,8 +103,9 @@ class UVLoop(IOLoop):
     def remove_handler(self, fd):
         if hasattr(self, 'split_fd'):
             fd, _ = self.split_fd(fd)
-        poll = self._handlers.pop(fd, None)
-        if poll is not None:
+        data = self._handlers.pop(fd, None)
+        if data is not None:
+            _, poll = data
             poll.close()
             poll.handler = None
 
@@ -211,7 +221,8 @@ class UVLoop(IOLoop):
                 events |= IOLoop.WRITE
         fd = handle.fileno()
         try:
-            self._handlers[fd].handler(fd, events)
+            _, poll = self._handlers[fd]
+            poll.handler(fd, events)
         except (OSError, IOError) as e:
             if e.args[0] == errno.EPIPE:
                 # Happens when the client closes the connection
