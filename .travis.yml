@@ -9,6 +9,9 @@ env:
   - TOX_ENV=py27-deps
   - TOX_ENV=py33-deps
   - TOX_ENV=py34-deps
+  - TOX_ENV=py27-t3
+  - TOX_ENV=py33-t3
+  - TOX_ENV=py34-t3
 
 sudo: false
 
