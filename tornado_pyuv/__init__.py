@@ -7,7 +7,11 @@ import functools
 import logging
 import numbers
 import os
-import thread
+
+try:
+    import thread
+except ImportError:
+    import _thread as thread  # Python 3
 
 try:
     import signal
@@ -41,6 +45,7 @@ class UVLoop(IOLoop):
         self._callback_lock = thread.allocate_lock()
         self._timeouts = set()
         self._stopped = False
+        self._running = False
         self._closing = False
         self._thread_ident = None
         self._cb_handle = pyuv.Prepare(self._loop)
@@ -53,11 +58,19 @@ class UVLoop(IOLoop):
         with self._callback_lock:
             self._closing = True
         if all_fds:
-            for fd in self._handlers.keys():
+            for fd in self._handlers:
+                obj, _ = self._handlers[fd]
+                if obj is not None and hasattr(obj, 'close'):
+                    try:
+                        obj.close()
+                    except Exception:
+                        gen_log.debug("error closing socket object %s", obj,
+                                      exc_info=True)
                 try:
                     os.close(fd)
                 except Exception:
                     gen_log.debug("error closing fd %s", fd, exc_info=True)
+
         self._fdwaker.close()
         self._close_loop_handles()
         # Run the loop so the close callbacks are fired and memory is freed
@@ -65,13 +78,14 @@ class UVLoop(IOLoop):
         self._loop = None
 
     def add_handler(self, fd, handler, events):
+        obj = None
         if hasattr(self, 'split_fd'):
-            fd, _ = self.split_fd(fd)
+            fd, obj = self.split_fd(fd)
         if fd in self._handlers:
             raise IOError("fd %d already registered" % fd)
         poll = pyuv.Poll(self._loop, fd)
         poll.handler = stack_context.wrap(handler)
-        self._handlers[fd] = poll
+        self._handlers[fd] = (obj, poll)
         poll_events = 0
         if events & IOLoop.READ:
             poll_events |= pyuv.UV_READABLE
@@ -82,7 +96,7 @@ class UVLoop(IOLoop):
     def update_handler(self, fd, events):
         if hasattr(self, 'split_fd'):
             fd, _ = self.split_fd(fd)
-        poll = self._handlers[fd]
+        _, poll = self._handlers[fd]
         poll_events = 0
         if events & IOLoop.READ:
             poll_events |= pyuv.UV_READABLE
@@ -93,12 +107,15 @@ class UVLoop(IOLoop):
     def remove_handler(self, fd):
         if hasattr(self, 'split_fd'):
             fd, _ = self.split_fd(fd)
-        poll = self._handlers.pop(fd, None)
-        if poll is not None:
+        data = self._handlers.pop(fd, None)
+        if data is not None:
+            _, poll = data
             poll.close()
             poll.handler = None
 
     def start(self):
+        if self._running:
+            raise RuntimeError('IOLoop is already running')
         if not logging.getLogger().handlers:
             # The IOLoop catches and logs exceptions, so it's
             # important that log output be visible.  However, python's
@@ -142,9 +159,11 @@ class UVLoop(IOLoop):
             except ValueError:  # non-main thread
                 pass
 
+        self._running = True
         self._loop.run(pyuv.UV_RUN_DEFAULT)
 
         # reset the stopped flag so another start/stop pair can be issued
+        self._running = False
         self._stopped = False
         IOLoop._current.instance = old_current
         if old_wakeup_fd is not None:
@@ -155,8 +174,11 @@ class UVLoop(IOLoop):
         self._loop.stop()
         self._waker.wake()
 
-    def add_timeout(self, deadline, callback):
-        timeout = _Timeout(deadline, stack_context.wrap(callback), self)
+    def add_timeout(self, deadline, callback, *args, **kwargs):
+        callback = stack_context.wrap(callback)
+        if callable(callback):
+            callback = functools.partial(callback, *args, **kwargs)
+        timeout = _Timeout(deadline, callback, self)
         self._timeouts.add(timeout)
         return timeout
 
@@ -205,7 +227,14 @@ class UVLoop(IOLoop):
                 events |= IOLoop.WRITE
         fd = handle.fileno()
         try:
-            self._handlers[fd].handler(fd, events)
+            obj, poll = self._handlers[fd]
+            callback_fd = fd
+            if obj is not None and hasattr(obj, 'fileno'):
+                # socket object was passed to add_handler,
+                # return it to the callback
+                callback_fd = obj
+
+            poll.handler(callback_fd, events)
         except (OSError, IOError) as e:
             if e.args[0] == errno.EPIPE:
                 # Happens when the client closes the connection

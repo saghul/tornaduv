@@ -1,0 +1,27 @@
+language: python
+
+python: 2.7
+
+env:
+  - TOX_ENV=py27
+  - TOX_ENV=py33
+  - TOX_ENV=py34
+  - TOX_ENV=py27-deps
+  - TOX_ENV=py33-deps
+  - TOX_ENV=py34-deps
+  - TOX_ENV=py27-t3
+  - TOX_ENV=py33-t3
+  - TOX_ENV=py34-t3
+
+sudo: false
+
+install:
+  - pip install tox
+
+script:
+  - tox -e $TOX_ENV
+
+notifications:
+  email:
+    on_success: never
+    on_failure: change
