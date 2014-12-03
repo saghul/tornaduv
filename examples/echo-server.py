@@ -4,7 +4,7 @@ import signal
 from tornado.ioloop import IOLoop
 from tornado.tcpserver import TCPServer
 
-from tornado_pyuv import UVLoop
+from tornaduv import UVLoop
 IOLoop.configure(UVLoop)
 
 

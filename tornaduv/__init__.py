@@ -252,10 +252,9 @@ class UVLoop(IOLoop):
             self._run_callback(callback)
 
     def _close_loop_handles(self):
-        def cb(handle):
+        for handle in self._loop.handles:
             if not handle.closed:
                 handle.close()
-        self._loop.walk(cb)
 
 
 class _Timeout(object):
