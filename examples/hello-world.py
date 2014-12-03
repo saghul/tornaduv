@@ -4,7 +4,7 @@ import signal
 from tornado.ioloop import IOLoop
 from tornado.web import Application, RequestHandler
 
-from tornado_pyuv import UVLoop
+from tornaduv import UVLoop
 IOLoop.configure(UVLoop)
 
 
