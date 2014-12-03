@@ -13,7 +13,7 @@ networking library used as the platform layer for NodeJS.
 Installation
 ============
 
-tornaduv requires pyuv >= 0.10.0 and Tornado >= 3.0.
+tornaduv requires pyuv >= 1.0.0 and Tornado >= 3.0.
 
 ::
 
