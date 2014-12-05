@@ -74,7 +74,7 @@ class UVLoop(IOLoop):
         self._fdwaker.close()
         self._close_loop_handles()
         # Run the loop so the close callbacks are fired and memory is freed
-        assert not self._loop.run(pyuv.UV_RUN_NOWAIT), "there are pending handles"
+        self._loop.run()
         self._loop = None
 
     def add_handler(self, fd, handler, events):
