@@ -2,6 +2,23 @@
 A Tornado IOLoop based on pyuv
 ==============================
 
+.. image:: https://travis-ci.org/saghul/tornaduv.svg?branch=master
+   :target: https://travis-ci.org/saghul/tornaduv
+   :alt: Build status
+
+.. image:: https://pypip.in/download/tornaduv/badge.png
+    :target: https://pypi.python.org/pypi/tornaduv/
+    :alt: Downloads
+
+.. image:: https://pypip.in/version/tornaduv/badge.png
+    :target: https://pypi.python.org/pypi/tornaduv/
+    :alt: Latest Version
+
+.. image:: https://pypip.in/license/tornaduv/badge.png
+    :target: https://pypi.python.org/pypi/tornaduv/
+    :alt: License
+
+
 tornaduv is a `Tornado <http://www.tornadoweb.org/>`_ IOLoop implementation
 which uses `pyuv <http://github.com/saghul/pyuv>`_ as the networking library instead
 of the builtin epoll and kqueue pollers included in Tornado.
