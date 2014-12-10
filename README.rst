@@ -65,10 +65,11 @@ If you want to run the Tornado test suite using tornaduv run the following comma
     python -m tornado.test.runtests --ioloop='tornaduv.UVLoop' --verbose
 
 
-Author
-======
+Authors
+=======
 
 Saúl Ibarra Corretgé <saghul@gmail.com>
+Marc Schlaich <marc.schlaich@gmail.com>
 
 
 License
