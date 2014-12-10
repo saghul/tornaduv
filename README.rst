@@ -37,10 +37,6 @@ tornaduv requires pyuv >= 1.0.0 and Tornado >= 3.0.
     pip install tornaduv
 
 
-**NOTE:** If you are using Tornado 2.4.x you need to use the 'tornado24' branch
-or the 0.2.x versions of tornaduv.
-
-
 Using it
 ========
 
