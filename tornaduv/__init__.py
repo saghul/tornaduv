@@ -38,7 +38,8 @@ class Waker(object):
 
 class UVLoop(IOLoop):
 
-    def initialize(self, loop=None):
+    def initialize(self, **kwargs):
+        loop = kwargs.pop('loop', None)
         self._loop = loop or pyuv.Loop()
         self._handlers = {}
         self._callbacks = []
@@ -52,7 +53,9 @@ class UVLoop(IOLoop):
         self._cb_handle.start(self._prepare_cb)
         self._waker = Waker(self._loop)
         self._fdwaker = FDWaker()
-        self._signal_checker = pyuv.util.SignalChecker(self._loop, self._fdwaker.reader.fileno())
+        self._signal_checker = pyuv.util.SignalChecker(
+            self._loop, self._fdwaker.reader.fileno())
+        super(UVLoop, self).initialize(**kwargs)
 
     def close(self, all_fds=False):
         with self._callback_lock:
