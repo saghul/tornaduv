@@ -1,17 +1,38 @@
 language: python
 
-python: 2.7
+matrix:
+  include:
+    - python: 2.7
+      env: TOX_ENV=py27
+    - python: 2.7
+      env: TOX_ENV=py27-deps
+    - python: 2.7
+      env: TOX_ENV=py27-t3
 
-env:
-  - TOX_ENV=py27
-  - TOX_ENV=py33
-  - TOX_ENV=py34
-  - TOX_ENV=py27-deps
-  - TOX_ENV=py33-deps
-  - TOX_ENV=py34-deps
-  - TOX_ENV=py27-t3
-  - TOX_ENV=py33-t3
-  - TOX_ENV=py34-t3
+    - python: 3.3
+      env: TOX_ENV=py33
+    - python: 3.3
+      env: TOX_ENV=py33-deps
+    - python: 3.3
+      env: TOX_ENV=py33-t3
+
+    - python: 3.4
+      env: TOX_ENV=py34
+    - python: 3.4
+      env: TOX_ENV=py34-deps
+    - python: 3.4
+      env: TOX_ENV=py34-t3
+
+    - python: 3.5
+      env: TOX_ENV=py35
+    - python: 3.5
+      env: TOX_ENV=py35-deps
+
+    - python: 3.6
+      env: TOX_ENV=py36
+    - python: 3.6
+      env: TOX_ENV=py36-deps
+
 
 sudo: false
 
