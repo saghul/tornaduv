@@ -27,15 +27,11 @@ matrix:
       env: TOX_ENV=py35
     - python: 3.5
       env: TOX_ENV=py35-deps
-    - python: 3.5
-      env: TOX_ENV=py35-t3
 
     - python: 3.6
       env: TOX_ENV=py36
     - python: 3.6
       env: TOX_ENV=py36-deps
-    - python: 3.6
-      env: TOX_ENV=py36-t3
 
 
 sudo: false
